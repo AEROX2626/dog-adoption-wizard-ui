@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>טופס אימוץ כלבה</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Heebo', sans-serif; overflow: hidden; background-color: #f8fafc; }
+        
+        /* Animations */
+        .slide-up { animation: slideUp 0.6s forwards cubic-bezier(0.16, 1, 0.3, 1); }
+        .slide-down { animation: slideDown 0.6s forwards cubic-bezier(0.16, 1, 0.3, 1); }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .option-card {
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .option-card:hover { background-color: #f0fdfa; border-color: #0d9488; transform: translateY(-1px); }
+        .option-selected { background-color: #f0fdfa; border-color: #0d9488; box-shadow: 0 0 0 1px #0d9488; }
+        
+        input[type="text"], input[type="tel"], textarea {
+            font-size: 1.5rem;
+            border: none;
+            border-bottom: 2px solid #cbd5e1;
+            background: transparent;
+            border-radius: 0;
+            padding: 0.5rem 0;
+            color: #0f172a;
+        }
+        input[type="text"]:focus, input[type="tel"]:focus, textarea:focus {
+            box-shadow: none;
+            border-color: #0d9488;
+        }
+        input::placeholder, textarea::placeholder {
+            color: #94a3b8;
+        }
+        
+        /* Hide scrollbar */
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="h-screen flex flex-col text-slate-800">
+    
+    <!-- Progress Bar -->
+    <div class="h-1 bg-slate-200 fixed top-0 w-full z-50">
+        <div id="progress-bar" class="h-full bg-teal-600 transition-all duration-500 ease-out" style="width: 0%"></div>
+    </div>
+
+    <!-- Navigation Footer -->
+    <div class="fixed bottom-0 left-0 w-full p-4 md:p-6 flex justify-between items-center bg-white/90 backdrop-blur-md border-t border-slate-200 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
+        <div class="flex gap-3">
+            <button id="btn-prev" onclick="goPrev()" class="w-12 h-12 md:w-auto md:px-6 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors">
+                <i data-lucide="chevron-down" class="md:mr-2"></i> <span class="hidden md:inline font-medium">חזור</span>
+            </button>
+            <button id="btn-next" onclick="goNext()" class="h-12 px-8 rounded-xl bg-teal-600 hover:bg-teal-700 text-white disabled:opacity-30 flex items-center justify-center font-bold text-lg transition-colors shadow-sm">
+                הבא <i data-lucide="chevron-up" class="mr-2"></i>
+            </button>
+        </div>
+        <div class="text-slate-500 font-medium text-sm hidden md:block" id="progress-text"></div>
+    </div>
+
+    <!-- Main Content Container -->
+    <div class="flex-1 flex flex-col justify-center items-start max-w-3xl mx-auto w-full px-6 md:px-12 pb-24 pt-10 overflow-y-auto" id="question-container">
+        <!-- JS renders questions here -->
+    </div>
+
+    <script>
+        const questions = [
+            {
+                id: 'welcome',
+                type: 'info',
+                title: 'טופס מועמדות לאימוץ 🐾',
+                desc: 'חשוב לנו למצוא לכלבה בית חם, יציב ואוהב לטווח ארוך. תהליך זה ייקח מספר דקות, נשאל שאלה אחת בכל פעם.',
+                buttonText: 'בואו נתחיל'
+            },
+            { id: 'q_name', type: 'text', title: '1. איך קוראים לכם?', placeholder: 'שם מלא' },
+            { id: 'q_phone', type: 'tel', title: '2. מה מספר הטלפון שלכם?', placeholder: 'למשל 050-1234567' },
+            { id: 'q_id', type: 'text', title: '3. מהו מספר תעודת הזהות?', placeholder: '9 ספרות' },
+            { id: 'q_city', type: 'text', title: '4. באיזו עיר אתם גרים?', placeholder: 'למשל: תל אביב' },
+            { id: 'q_address', type: 'text', title: '5. מהי הכתובת המלאה?', placeholder: 'רחוב ומספר בית' },
+            {
+                id: 'q_who_lives', type: 'radio', title: '6. מי מתגורר בבית?',
+                options: ['אדם יחיד', 'זוג', 'זוג עם ילדים', 'משפחה מורחבת', 'אחר']
+            },
+            {
+                id: 'q_agreed', type: 'radio', title: '7. האם כל בני הבית יודעים ומסכימים לאימוץ?',
+                options: ['כן', 'לא']
+            },
+            {
+                id: 'q_initiator', type: 'radio', title: '8. מי יזם את הרצון לאמץ את הכלבה?',
+                options: ['אני', 'בן/בת הזוג', 'הילדים', 'החלטה משותפת', 'אחר']
+            },
+            {
+                id: 'q_past_dog', type: 'radio', title: '9. האם גידלתם בעבר כלב?',
+                options: ['כן, כיום יש/היה לנו כלב', 'כן, בעבר', 'לא']
+            },
+            {
+                id: 'q_past_dog_details', type: 'text', title: 'מה קרה לכלב שגידלתם בעבר?', placeholder: 'פרטו בקצרה...',
+                condition: (answers) => answers['q_past_dog'] === 'כן, בעבר'
+            },
+            {
+                id: 'q_other_animals', type: 'radio', title: '10. האם יש כיום בעלי חיים נוספים בבית?',
+                options: ['כן', 'לא']
+            },
+            {
+                id: 'q_other_animals_details', type: 'text', title: 'איזה בעלי חיים נוספים יש?', placeholder: 'למשל: 2 חתולים, ארנב...',
+                condition: (answers) => answers['q_other_animals'] === 'כן'
+            },
+            {
+                id: 'q_home_type', type: 'radio', title: '11. מהו סוג המגורים שלכם?',
+                options: ['דירה בבניין', 'בית פרטי', 'בית עם חצר', 'אחר']
+            },
+            {
+                id: 'q_yard', type: 'radio', title: '12. האם יש לכם מרפסת או חצר?',
+                options: ['כן', 'לא']
+            },
+            {
+                id: 'q_yard_safe', type: 'radio', title: 'האם המרפסת/חצר בטוחות וסגורות כך שהכלבה לא תצא?',
+                options: ['כן', 'לא', 'לא רלוונטי'],
+                condition: (answers) => answers['q_yard'] === 'כן'
+            },
+            {
+                id: 'q_alone_hours', type: 'radio', title: '13. כמה שעות ביום הכלבה צפויה להישאר לבד?',
+                options: ['כמעט לא תהיה לבד', 'עד 3 שעות', '3–6 שעות', '6–8 שעות', 'יותר מ-8 שעות']
+            },
+            { id: 'q_where_day', type: 'text', title: '14. איפה הכלבה צפויה להיות במהלך היום?', placeholder: 'בבית, בחצר, במשרד...' },
+            { id: 'q_where_sleep', type: 'text', title: '15. איפה היא צפויה לישון בלילה?', placeholder: 'במיטה, בסלון, במלונה...' },
+            { id: 'q_reason', type: 'textarea', title: '16. מה הסיבה שאתם מעוניינים לאמץ דווקא אותה?', placeholder: 'שתפו אותנו במחשבותיכם...' },
+            {
+                id: 'q_age7', type: 'radio', title: '17. האם העובדה שהיא בת 7 מתאימה לכם?',
+                options: ['בהחלט', 'כן', 'לא בטוחים', 'לא']
+            },
+            {
+                id: 'q_looking_for', type: 'checkbox', title: '18. מה אתם מחפשים בכלבה?',
+                options: ['כלבה רגועה לבית', 'חברה למשפחה', 'חברה לילדים', 'לטיולים ופעילות', 'אחר']
+            },
+            { id: 'q_important', type: 'textarea', title: '19. מה חשוב לכם במיוחד באופי של הכלבה?', placeholder: 'למשל: שתהיה שקטה, ידידותית...' },
+            {
+                id: 'q_caretaker', type: 'radio', title: '20. מי יהיה אחראי בעיקר על הטיפול היומיומי?',
+                options: ['אני', 'בן/בת הזוג', 'שנינו', 'אחד הילדים', 'כל בני המשפחה']
+            },
+            {
+                id: 'q_walks', type: 'radio', title: '21. כמה טיולים ביום אתם מתכננים להוציא אותה?',
+                options: ['1', '2', '3', '4 ומעלה']
+            },
+            {
+                id: 'q_adjustment', type: 'radio', title: '22. אם יהיו קשיי הסתגלות, מה תעשו?',
+                options: ['אתן לה זמן להתרגל', 'אתייעץ עם מאלף/ת', 'אתייעץ עם וטרינר', 'אפנה אליכם לעזרה', 'אחר']
+            },
+            {
+                id: 'q_giveup', type: 'radio', title: '23. אם בעתיד לא תוכלו להמשיך לטפל בה, מה תעשו?',
+                options: ['אפנה אליכם ואחזיר אליכם', 'אחפש לה משפחה אחרת', 'אפנה לעמותה', 'אחר']
+            },
+            {
+                id: 'q_commitments', type: 'checkbox', title: '24. התחייבויות האימוץ (חובה לסמן הכל)',
+                options: [
+                    'מתחייב/ת שלא למכור את הכלבה.',
+                    'מתחייב/ת שלא להרביע אותה.',
+                    'מתחייב/ת שלא למסור לאדם אחר ללא תיאום.',
+                    'אחזיר אליכם במקרה שלא אוכל לטפל.',
+                    'מסכים/ה לפגישת היכרות לפני האימוץ.',
+                    'מבין/ה שנדרש לחתום על חוזה אימוץ.'
+                ]
+            },
+            { id: 'q_files', type: 'file', title: '25. נשמח לתמונות של הבית', desc: 'אנא העלו צילום ת"ז או תמונות מהבית שבו תגור הכלבה' },
+            {
+                id: 'q_home_visit', type: 'radio', title: '26. מסכימים שבמידת הצורך נגיע לביקור בית?',
+                options: ['כן', 'לא']
+            },
+            { id: 'q_anything_else', type: 'textarea', title: '27. יש משהו נוסף שחשוב שנדע?', placeholder: 'הבמה שלכם...' },
+            {
+                id: 'thank_you', type: 'info', title: 'זהו! תודה רבה 🐶',
+                desc: 'לאחר שנעבור על הפרטים, ניצור קשר עם המועמדים המתאימים להמשך התהליך.\n(שימו לב: זהו דמו בלבד).',
+                buttonText: 'לשליחת הטופס'
+            }
+        ];
+
+        let currentIndex = 0;
+        let answers = {};
+        const container = document.getElementById('question-container');
+        
+        function getNextIndex(dir) {
+            let idx = currentIndex + dir;
+            while(idx > 0 && idx < questions.length - 1) {
+                if(!questions[idx].condition || questions[idx].condition(answers)) {
+                    return idx;
+                }
+                idx += dir;
+            }
+            return Math.max(0, Math.min(idx, questions.length - 1));
+        }
+
+        function renderQuestion(index, animDirection = 'up') {
+            const q = questions[index];
+            const isLast = index === questions.length - 1;
+            
+            // UI state
+            document.getElementById('btn-prev').disabled = index === 0 || isLast;
+            const btnNext = document.getElementById('btn-next');
+            btnNext.style.display = (q.type === 'info') ? 'none' : 'flex';
+            
+            const realProgress = Math.max(0, index - 1) / (questions.length - 2) * 100;
+            document.getElementById('progress-bar').style.width = index === 0 ? '0%' : (isLast ? '100%' : `${realProgress}%`);
+            document.getElementById('progress-text').innerText = index > 0 && !isLast ? `${index} מתוך 27` : '';
+
+            const animClass = animDirection === 'up' ? 'slide-up' : 'slide-down';
+            let html = `<div class="w-full ${animClass}">`;
+            
+            if (q.type === 'info') {
+                html += `
+                    <div class="text-center w-full max-w-lg mx-auto">
+                        <div class="w-24 h-24 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-8 shadow-sm">
+                            <span class="text-5xl">${index === 0 ? '🐾' : '🎉'}</span>
+                        </div>
+                        <h1 class="text-4xl md:text-5xl font-extrabold text-teal-900 mb-6 leading-tight">${q.title}</h1>
+                        <p class="text-lg md:text-xl text-slate-600 mb-10 whitespace-pre-line leading-relaxed">${q.desc}</p>
+                        <button onclick="${isLast ? 'alert(\\\'הטופס נשלח בהצלחה!\\\')' : 'goNext()'}" class="bg-teal-600 hover:bg-teal-700 text-white font-bold py-4 px-12 rounded-full text-xl shadow-lg transition-transform transform hover:-translate-y-1 w-full md:w-auto">
+                            ${q.buttonText}
+                        </button>
+                    </div>
+                `;
+            } else {
+                html += `<h2 class="text-3xl md:text-4xl font-bold mb-3 text-slate-900 leading-tight">${q.title}</h2>`;
+                if(q.desc) html += `<p class="text-slate-500 mb-8 text-lg">${q.desc}</p>`;
+                
+                if (q.type === 'text' || q.type === 'tel') {
+                    html += `
+                        <input type="${q.type}" id="${q.id}" class="w-full mt-4 focus:outline-none" placeholder="${q.placeholder || ''}" 
+                        value="${answers[q.id] || ''}" onkeydown="if(event.key==='Enter') goNext()">
+                        <div class="text-sm text-teal-700 mt-4 flex items-center font-medium"><i data-lucide="corner-down-left" class="w-4 h-4 mr-2"></i> לחצו Enter כדי להמשיך</div>
+                    `;
+                } else if (q.type === 'textarea') {
+                    html += `
+                        <textarea id="${q.id}" class="w-full mt-4 focus:outline-none resize-none border-b-2" rows="3" placeholder="${q.placeholder || ''}">${answers[q.id] || ''}</textarea>
+                    `;
+                } else if (q.type === 'radio') {
+                    html += `<div class="mt-6 space-y-3">`;
+                    q.options.forEach(opt => {
+                        const checked = answers[q.id] === opt ? 'checked' : '';
+                        const selClass = checked ? 'option-selected' : '';
+                        html += `
+                            <label class="option-card border border-slate-200 rounded-2xl p-4 flex items-center ${selClass}">
+                                <div class="w-6 h-6 rounded-full border-2 border-slate-300 flex items-center justify-center ml-4 bg-white">
+                                    <div class="w-3 h-3 rounded-full bg-teal-600 ${checked ? 'opacity-100' : 'opacity-0'}"></div>
+                                </div>
+                                <input type="radio" name="${q.id}" value="${opt}" class="hidden" ${checked} onchange="handleRadioChange('${q.id}', '${opt}')">
+                                <span class="text-xl text-slate-700 font-medium">${opt}</span>
+                            </label>
+                        `;
+                    });
+                    html += `</div>`;
+                } else if (q.type === 'checkbox') {
+                    html += `<div class="mt-6 space-y-3">`;
+                    const currentAnswers = answers[q.id] || [];
+                    q.options.forEach(opt => {
+                        const checked = currentAnswers.includes(opt) ? 'checked' : '';
+                        const selClass = checked ? 'option-selected' : '';
+                        html += `
+                            <label class="option-card border border-slate-200 rounded-2xl p-4 flex items-center ${selClass}" onclick="toggleCheckbox(this)">
+                                <div class="w-6 h-6 rounded-md border-2 border-slate-300 flex items-center justify-center ml-4 bg-white transition-colors ${checked ? 'bg-teal-600 border-teal-600' : ''}">
+                                    <i data-lucide="check" class="text-white w-4 h-4 ${checked ? 'opacity-100' : 'opacity-0'}"></i>
+                                </div>
+                                <input type="checkbox" name="${q.id}" value="${opt}" class="hidden" ${checked}>
+                                <span class="text-xl text-slate-700 font-medium">${opt}</span>
+                            </label>
+                        `;
+                    });
+                    html += `</div>`;
+                } else if (q.type === 'file') {
+                    html += `
+                        <div class="mt-6 border-2 border-dashed border-slate-300 rounded-3xl p-12 text-center hover:bg-slate-50 transition-colors bg-white">
+                            <i data-lucide="upload-cloud" class="w-16 h-16 mx-auto text-teal-500 mb-6"></i>
+                            <p class="text-slate-700 font-medium text-lg mb-2">לחצו להעלאת קבצים או גררו לכאן</p>
+                            <input type="file" multiple class="block w-full text-slate-500 file:mr-4 file:py-3 file:px-6 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-teal-100 file:text-teal-800 hover:file:bg-teal-200 mx-auto max-w-xs mt-6 cursor-pointer">
+                        </div>
+                    `;
+                }
+            }
+            
+            html += `</div>`;
+            container.innerHTML = html;
+            lucide.createIcons();
+
+            // Focus timeout
+            setTimeout(() => {
+                const input = document.getElementById(q.id);
+                if (input && (q.type === 'text' || q.type === 'tel' || q.type === 'textarea')) {
+                    input.focus();
+                }
+            }, 100);
+        }
+
+        function saveAnswer() {
+            const q = questions[currentIndex];
+            if (q.type === 'text' || q.type === 'tel' || q.type === 'textarea') {
+                const el = document.getElementById(q.id);
+                if (el) {
+                    const val = el.value.trim();
+                    if (val) answers[q.id] = val;
+                    else delete answers[q.id];
+                }
+            } else if (q.type === 'checkbox') {
+                const checked = Array.from(document.querySelectorAll(`input[name="${q.id}"]:checked`)).map(cb => cb.value);
+                if(checked.length) answers[q.id] = checked;
+                else delete answers[q.id];
+            }
+        }
+
+        function goNext() {
+            saveAnswer();
+            const q = questions[currentIndex];
+            
+            // Validate required
+            if (q.type !== 'info' && q.type !== 'file' && q.type !== 'checkbox') {
+                if (!answers[q.id]) {
+                    container.children[0].style.transform = 'translateX(10px)';
+                    setTimeout(() => container.children[0].style.transform = 'translateX(-10px)', 100);
+                    setTimeout(() => container.children[0].style.transform = 'translateX(0)', 200);
+                    return;
+                }
+            }
+
+            if (currentIndex < questions.length - 1) {
+                currentIndex = getNextIndex(1);
+                renderQuestion(currentIndex, 'up');
+            }
+        }
+
+        function goPrev() {
+            if (currentIndex > 0) {
+                saveAnswer();
+                currentIndex = getNextIndex(-1);
+                renderQuestion(currentIndex, 'down');
+            }
+        }
+
+        window.handleRadioChange = function(qId, val) {
+            answers[qId] = val;
+            setTimeout(() => goNext(), 350);
+        }
+
+        window.toggleCheckbox = function(label) {
+            const checkbox = label.querySelector('input');
+            const checkIcon = label.querySelector('.lucide-check');
+            const box = label.querySelector('.w-6.h-6');
+            
+            checkbox.checked = !checkbox.checked;
+            if(checkbox.checked) {
+                label.classList.add('option-selected');
+                box.classList.add('bg-teal-600', 'border-teal-600');
+                checkIcon.classList.remove('opacity-0');
+            } else {
+                label.classList.remove('option-selected');
+                box.classList.remove('bg-teal-600', 'border-teal-600');
+                checkIcon.classList.add('opacity-0');
+            }
+        }
+
+        // Init
+        renderQuestion(0);
+    </script>
+</body>
+</html>
