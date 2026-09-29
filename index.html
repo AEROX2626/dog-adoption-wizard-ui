@@ -64,7 +64,7 @@
         <div id="progress-bar" class="h-full bg-teal-600 transition-all duration-500 ease-out" style="width: 0%"></div>
     </div>
 
-    <!-- Navigation Footer (Mobile Optimized) -->
+    <!-- Navigation Footer -->
     <div class="fixed bottom-0 left-0 w-full p-3 px-5 md:p-6 pb-safe flex justify-between items-center bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 shadow-[0_-4px_20px_rgba(0,0,0,0.04)]">
         <div class="flex gap-2 md:gap-3 w-full md:w-auto">
             <button id="btn-prev" onclick="goPrev()" class="w-12 h-12 md:w-auto md:px-6 rounded-xl bg-slate-100 active:bg-slate-200 md:hover:bg-slate-200 text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors shrink-0">
@@ -77,7 +77,7 @@
         <div class="text-slate-500 font-medium text-sm hidden md:block" id="progress-text"></div>
     </div>
 
-    <!-- Main Content Container: top aligned on mobile to prevent keyboard overlap -->
+    <!-- Main Content Container -->
     <div class="flex-1 flex flex-col justify-start md:justify-center items-start max-w-3xl mx-auto w-full px-5 md:px-12 pb-32 pt-16 md:pt-10 overflow-y-auto" id="question-container">
     </div>
 
@@ -113,10 +113,9 @@
             { id: 'q_adjustment', type: 'radio', title: '22. אם יהיו קשיי הסתגלות, מה תעשו?', options: ['אתן לה זמן להתרגל', 'אתייעץ עם מאלף/ת', 'אתייעץ עם וטרינר', 'אפנה אליכם לעזרה', 'אחר'] },
             { id: 'q_giveup', type: 'radio', title: '23. אם בעתיד לא תוכלו להמשיך לטפל בה, מה תעשו?', options: ['אפנה אליכם ואחזיר אליכם', 'אחפש לה משפחה אחרת', 'אפנה לעמותה', 'אחר'] },
             { id: 'q_commitments', type: 'checkbox', title: '24. התחייבויות האימוץ (חובה לסמן הכל)', options: ['מתחייב/ת שלא למכור את הכלבה.', 'מתחייב/ת שלא להרביע אותה.', 'מתחייב/ת שלא למסור לאדם אחר ללא תיאום.', 'אחזיר אליכם במקרה שלא אוכל לטפל.', 'מסכים/ה לפגישת היכרות לפני האימוץ.', 'מבין/ה שנדרש לחתום על חוזה אימוץ.'] },
-            { id: 'q_files', type: 'file', title: '25. נשמח לתמונות של הבית', desc: 'אנא העלו צילום ת"ז או תמונות מהבית שבו תגור הכלבה' },
-            { id: 'q_home_visit', type: 'radio', title: '26. מסכימים שבמידת הצורך נגיע לביקור בית?', options: ['כן', 'לא'] },
-            { id: 'q_anything_else', type: 'textarea', title: '27. יש משהו נוסף שחשוב שנדע?', placeholder: 'הבמה שלכם...' },
-            { id: 'thank_you', type: 'info', title: 'הגענו לסוף! 🐶', desc: 'לחיצה על סיום תשלח את הפרטים שלכם.', buttonText: 'לשליחת הטופס' }
+            { id: 'q_home_visit', type: 'radio', title: '25. הכנת תמונות וביקור בית', desc: 'בהמשך נבקש תמונות של הבית בוואטסאפ (אפשר לארגן מראש). האם תסכימו גם לביקור בית במידת הצורך?', options: ['כן', 'לא'] },
+            { id: 'q_anything_else', type: 'textarea', title: '26. יש משהו נוסף שחשוב שנדע?', placeholder: 'הבמה שלכם...' },
+            { id: 'thank_you', type: 'loading', title: 'שולח נתונים...' }
         ];
 
         let currentIndex = 0;
@@ -137,95 +136,104 @@
         function renderQuestion(index, animDirection = 'up') {
             const q = questions[index];
             const isLast = index === questions.length - 1;
+            const animClass = animDirection === 'up' ? 'slide-up' : 'slide-down';
             
-            document.getElementById('btn-prev').disabled = index === 0 || isLast;
+            if (isLast) {
+                document.getElementById('btn-prev').style.display = 'none';
+                document.getElementById('btn-next').style.display = 'none';
+                document.getElementById('progress-text').style.display = 'none';
+                document.getElementById('progress-bar').style.width = '100%';
+                
+                container.innerHTML = `
+                    <div class="text-center w-full max-w-lg mx-auto ${animClass} pt-10 md:pt-0">
+                        <div class="w-24 h-24 md:w-28 md:h-28 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center mx-auto mb-6 md:mb-8 shadow-sm">
+                            <i data-lucide="loader" class="w-12 h-12 md:w-16 md:h-16 animate-spin"></i>
+                        </div>
+                        <h1 class="text-3xl md:text-5xl font-extrabold text-slate-900 mb-4 md:mb-6">מעבד נתונים...</h1>
+                        <p class="text-lg md:text-xl text-slate-600 mb-10 px-4">הטופס נשלח ברגעים אלו, אנא המתינו.</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                submitForm();
+                return;
+            }
+            
+            document.getElementById('btn-prev').disabled = index === 0;
+            document.getElementById('btn-prev').style.display = 'flex';
             const btnNext = document.getElementById('btn-next');
             btnNext.style.display = (q.type === 'info') ? 'none' : 'flex';
             
             const realProgress = Math.max(0, index - 1) / (questions.length - 2) * 100;
-            document.getElementById('progress-bar').style.width = index === 0 ? '0%' : (isLast ? '100%' : `${realProgress}%`);
-            document.getElementById('progress-text').innerText = index > 0 && !isLast ? `${index} מתוך 27` : '';
+            document.getElementById('progress-bar').style.width = index === 0 ? '0%' : \`\${realProgress}%\`;
+            document.getElementById('progress-text').innerText = index > 0 ? \`\${index} מתוך 26\` : '';
 
-            const animClass = animDirection === 'up' ? 'slide-up' : 'slide-down';
-            let html = `<div class="w-full ${animClass}">`;
+            let html = \`<div class="w-full \${animClass}">\`;
             
             if (q.type === 'info') {
-                html += `
+                html += \`
                     <div class="text-center w-full max-w-lg mx-auto pt-4 md:pt-0">
                         <div class="w-20 h-20 md:w-24 md:h-24 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-6 md:mb-8 shadow-sm">
-                            <span class="text-4xl md:text-5xl">${index === 0 ? '🐾' : '🎉'}</span>
+                            <span class="text-4xl md:text-5xl">🐾</span>
                         </div>
-                        <h1 class="text-3xl md:text-5xl font-extrabold text-teal-900 mb-4 md:mb-6 leading-tight">${q.title}</h1>
-                        <p class="text-base md:text-xl text-slate-600 mb-8 whitespace-pre-line leading-relaxed">${q.desc}</p>
-                        <button id="submitBtn" onclick="${isLast ? 'submitForm()' : 'goNext()'}" class="bg-teal-600 active:bg-teal-700 md:hover:bg-teal-700 text-white font-bold py-4 px-10 rounded-full text-xl shadow-lg transition-transform transform active:scale-95 w-full md:w-auto flex items-center justify-center gap-2 mx-auto">
-                            ${isLast ? '<i data-lucide="send" class="w-5 h-5"></i> ' : ''}${q.buttonText}
+                        <h1 class="text-3xl md:text-5xl font-extrabold text-teal-900 mb-4 md:mb-6 leading-tight">\${q.title}</h1>
+                        <p class="text-base md:text-xl text-slate-600 mb-8 whitespace-pre-line leading-relaxed">\${q.desc}</p>
+                        <button onclick="goNext()" class="bg-teal-600 active:bg-teal-700 md:hover:bg-teal-700 text-white font-bold py-4 px-10 rounded-full text-xl shadow-lg transition-transform transform active:scale-95 w-full md:w-auto flex items-center justify-center gap-2 mx-auto">
+                            \${q.buttonText}
                         </button>
                     </div>
-                `;
+                \`;
             } else {
-                html += `<h2 class="text-2xl md:text-4xl font-bold mb-2 md:mb-3 text-slate-900 leading-tight">${q.title}</h2>`;
-                if(q.desc) html += `<p class="text-slate-500 mb-6 md:mb-8 text-base md:text-lg">${q.desc}</p>`;
+                html += \`<h2 class="text-2xl md:text-4xl font-bold mb-2 md:mb-3 text-slate-900 leading-tight">\${q.title}</h2>\`;
+                if(q.desc) html += \`<p class="text-slate-500 mb-6 md:mb-8 text-base md:text-lg">\${q.desc}</p>\`;
                 
                 if (q.type === 'text' || q.type === 'tel') {
-                    html += `<input type="${q.type}" id="${q.id}" class="w-full mt-2 md:mt-4 focus:outline-none" placeholder="${q.placeholder || ''}" value="${answers[q.id] || ''}" onkeydown="if(event.key==='Enter') goNext()">
-                        <div class="text-sm text-teal-700 mt-4 flex items-center font-medium opacity-70 md:opacity-100"><i data-lucide="corner-down-left" class="w-4 h-4 mr-2"></i> לחצו Enter כדי להמשיך</div>`;
+                    html += \`<input type="\${q.type}" id="\${q.id}" class="w-full mt-2 md:mt-4 focus:outline-none" placeholder="\${q.placeholder || ''}" value="\${answers[q.id] || ''}" onkeydown="if(event.key==='Enter') goNext()">
+                        <div class="text-sm text-teal-700 mt-4 flex items-center font-medium opacity-70 md:opacity-100"><i data-lucide="corner-down-left" class="w-4 h-4 mr-2"></i> לחצו Enter כדי להמשיך</div>\`;
                 } else if (q.type === 'textarea') {
-                    html += `<textarea id="${q.id}" class="w-full mt-2 md:mt-4 focus:outline-none resize-none border-b-2" rows="4" placeholder="${q.placeholder || ''}">${answers[q.id] || ''}</textarea>`;
+                    html += \`<textarea id="\${q.id}" class="w-full mt-2 md:mt-4 focus:outline-none resize-none border-b-2" rows="4" placeholder="\${q.placeholder || ''}">\${answers[q.id] || ''}</textarea>\`;
                 } else if (q.type === 'radio') {
-                    html += `<div class="mt-4 md:mt-6 space-y-2.5 md:space-y-3 w-full">`;
+                    html += \`<div class="mt-4 md:mt-6 space-y-2.5 md:space-y-3 w-full">\`;
                     q.options.forEach(opt => {
                         const checked = answers[q.id] === opt ? 'checked' : '';
                         const selClass = checked ? 'option-selected' : '';
-                        html += `
-                            <label class="option-card border border-slate-200 rounded-2xl p-3.5 md:p-4 flex items-center ${selClass}">
+                        html += \`
+                            <label class="option-card border border-slate-200 rounded-2xl p-3.5 md:p-4 flex items-center \${selClass}">
                                 <div class="w-6 h-6 rounded-full border-2 border-slate-300 flex items-center justify-center ml-3.5 bg-white shrink-0">
-                                    <div class="w-3 h-3 rounded-full bg-teal-600 ${checked ? 'opacity-100' : 'opacity-0'}"></div>
+                                    <div class="w-3 h-3 rounded-full bg-teal-600 \${checked ? 'opacity-100' : 'opacity-0'}"></div>
                                 </div>
-                                <input type="radio" name="${q.id}" value="${opt}" class="hidden" ${checked} onchange="handleRadioChange('${q.id}', '${opt}')">
-                                <span class="text-lg md:text-xl text-slate-700 font-medium leading-tight">${opt}</span>
-                            </label>`;
+                                <input type="radio" name="\${q.id}" value="\${opt}" class="hidden" \${checked} onchange="handleRadioChange('\${q.id}', '\${opt}')">
+                                <span class="text-lg md:text-xl text-slate-700 font-medium leading-tight">\${opt}</span>
+                            </label>\`;
                     });
-                    html += `</div>`;
+                    html += \`</div>\`;
                 } else if (q.type === 'checkbox') {
-                    html += `<div class="mt-4 md:mt-6 space-y-2.5 md:space-y-3 w-full">`;
+                    html += \`<div class="mt-4 md:mt-6 space-y-2.5 md:space-y-3 w-full">\`;
                     const currentAnswers = typeof answers[q.id] === 'string' ? answers[q.id].split(', ') : [];
                     q.options.forEach(opt => {
                         const checked = currentAnswers.includes(opt) ? 'checked' : '';
                         const selClass = checked ? 'option-selected' : '';
-                        html += `
-                            <label class="option-card border border-slate-200 rounded-2xl p-3.5 md:p-4 flex items-center ${selClass}" onclick="toggleCheckbox(this)">
-                                <div class="w-6 h-6 rounded-md border-2 border-slate-300 flex items-center justify-center ml-3.5 bg-white transition-colors shrink-0 ${checked ? 'bg-teal-600 border-teal-600' : ''}">
-                                    <i data-lucide="check" class="text-white w-4 h-4 ${checked ? 'opacity-100' : 'opacity-0'}"></i>
+                        html += \`
+                            <label class="option-card border border-slate-200 rounded-2xl p-3.5 md:p-4 flex items-center \${selClass}" onclick="toggleCheckbox(this)">
+                                <div class="w-6 h-6 rounded-md border-2 border-slate-300 flex items-center justify-center ml-3.5 bg-white transition-colors shrink-0 \${checked ? 'bg-teal-600 border-teal-600' : ''}">
+                                    <i data-lucide="check" class="text-white w-4 h-4 \${checked ? 'opacity-100' : 'opacity-0'}"></i>
                                 </div>
-                                <input type="checkbox" name="${q.id}" value="${opt}" class="hidden" ${checked}>
-                                <span class="text-lg md:text-xl text-slate-700 font-medium leading-tight">${opt}</span>
-                            </label>`;
+                                <input type="checkbox" name="\${q.id}" value="\${opt}" class="hidden" \${checked}>
+                                <span class="text-lg md:text-xl text-slate-700 font-medium leading-tight">\${opt}</span>
+                            </label>\`;
                     });
-                    html += `</div>`;
-                } else if (q.type === 'file') {
-                    html += `
-                        <div class="mt-4 border-2 border-dashed border-slate-300 rounded-3xl p-8 md:p-12 text-center bg-white w-full">
-                            <i data-lucide="upload-cloud" class="w-12 h-12 md:w-16 md:h-16 mx-auto text-teal-500 mb-4 md:mb-6"></i>
-                            <p class="text-slate-700 font-medium text-base md:text-lg mb-2">לחצו להעלאת קבצים או גררו לכאן</p>
-                            <input type="file" id="${q.id}" multiple class="block w-full text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-teal-100 file:text-teal-800 mx-auto max-w-xs mt-4 cursor-pointer" onchange="saveFileAnswer('${q.id}')">
-                            <div id="${q.id}-preview" class="text-sm text-teal-700 mt-4 font-bold"></div>
-                        </div>`;
+                    html += \`</div>\`;
                 }
             }
             
-            html += `</div>`;
+            html += \`</div>\`;
             container.innerHTML = html;
             lucide.createIcons();
 
             setTimeout(() => {
                 const input = document.getElementById(q.id);
-                // Do not auto-focus on mobile to prevent keyboard pop-up immediately on screen transition
+                // Do not auto-focus on mobile
                 if (input && (q.type === 'text' || q.type === 'tel' || q.type === 'textarea') && window.innerWidth > 768) {
                     input.focus();
-                }
-                
-                if(q.type === 'file' && answers[q.id]) {
-                    document.getElementById(q.id+'-preview').innerText = `נבחרו ${answers[q.id].length} קבצים.`;
                 }
             }, 100);
         }
@@ -240,25 +248,16 @@
                     else delete answers[q.id];
                 }
             } else if (q.type === 'checkbox') {
-                const checked = Array.from(document.querySelectorAll(`input[name="${q.id}"]:checked`)).map(cb => cb.value);
+                const checked = Array.from(document.querySelectorAll(\`input[name="\${q.id}"]:checked\`)).map(cb => cb.value);
                 if(checked.length) answers[q.id] = checked.join(', ');
                 else delete answers[q.id];
-            }
-        }
-
-        window.saveFileAnswer = function(qId) {
-            const el = document.getElementById(qId);
-            if (el && el.files.length > 0) {
-                answers[qId] = el.files;
-                document.getElementById(qId+'-preview').innerText = `נבחרו ${el.files.length} קבצים.`;
-                setTimeout(() => goNext(), 600);
             }
         }
 
         function goNext() {
             saveAnswer();
             const q = questions[currentIndex];
-            if (q.type !== 'info' && q.type !== 'file' && q.type !== 'checkbox') {
+            if (q.type !== 'info' && q.type !== 'checkbox' && q.type !== 'loading') {
                 if (!answers[q.id]) {
                     container.children[0].style.transform = 'translateX(10px)';
                     setTimeout(() => container.children[0].style.transform = 'translateX(-10px)', 100);
@@ -302,17 +301,6 @@
         }
 
         async function submitForm() {
-            if (WEB3FORMS_ACCESS_KEY === 'YOUR_WEB3FORMS_ACCESS_KEY_HERE') {
-                alert('יש להכניס את מפתח ה-Access Key של Web3Forms בקוד כדי שהטופס יישלח!');
-                return;
-            }
-
-            const submitBtn = document.getElementById('submitBtn');
-            const originalHTML = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i data-lucide="loader" class="w-5 h-5 animate-spin md:mr-2 shrink-0"></i> שולח...';
-            lucide.createIcons();
-            submitBtn.disabled = true;
-
             const formData = new FormData();
             formData.append('access_key', WEB3FORMS_ACCESS_KEY);
             formData.append('subject', 'בקשת אימוץ חדשה: ' + (answers.q_name || 'ללא שם'));
@@ -333,14 +321,8 @@
             };
 
             for (const key in answers) {
-                if (key === 'q_files') {
-                    for (let i = 0; i < answers[key].length; i++) {
-                        formData.append('attachment', answers[key][i]);
-                    }
-                } else {
-                    const label = hebrewNames[key] || key;
-                    formData.append(label, answers[key]);
-                }
+                const label = hebrewNames[key] || key;
+                formData.append(label, answers[key]);
             }
 
             try {
@@ -351,7 +333,7 @@
                 
                 const result = await response.json();
                 if (response.status === 200) {
-                    container.innerHTML = `
+                    container.innerHTML = \`
                         <div class="text-center w-full max-w-lg mx-auto slide-up pt-10 md:pt-0">
                             <div class="w-24 h-24 md:w-28 md:h-28 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 md:mb-8 shadow-sm">
                                 <i data-lucide="check-circle" class="w-12 h-12 md:w-16 md:h-16"></i>
@@ -359,19 +341,30 @@
                             <h1 class="text-3xl md:text-5xl font-extrabold text-slate-900 mb-4 md:mb-6">נשלח בהצלחה!</h1>
                             <p class="text-lg md:text-xl text-slate-600 mb-10 px-4">תודה רבה! הטופס שלך התקבל וניצור איתך קשר בהקדם.</p>
                         </div>
-                    `;
+                    \`;
                     lucide.createIcons();
-                    document.getElementById('btn-prev').style.display = 'none';
                 } else {
-                    alert('אירעה שגיאה: ' + result.message);
-                    submitBtn.innerHTML = originalHTML;
-                    submitBtn.disabled = false;
+                    showError(result.message);
                 }
             } catch (error) {
-                alert('שגיאת תקשורת. אנא נסה שוב מאוחר יותר.');
-                submitBtn.innerHTML = originalHTML;
-                submitBtn.disabled = false;
+                showError('שגיאת תקשורת. בדקו את החיבור לאינטרנט ונסו שוב.');
             }
+        }
+        
+        function showError(msg) {
+            container.innerHTML = \`
+                <div class="text-center w-full max-w-lg mx-auto slide-up pt-10 md:pt-0">
+                    <div class="w-24 h-24 md:w-28 md:h-28 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6 md:mb-8 shadow-sm">
+                        <i data-lucide="x-circle" class="w-12 h-12 md:w-16 md:h-16"></i>
+                    </div>
+                    <h1 class="text-3xl md:text-5xl font-extrabold text-slate-900 mb-4 md:mb-6">אירעה שגיאה</h1>
+                    <p class="text-lg md:text-xl text-slate-600 mb-10 px-4">\${msg}</p>
+                    <button onclick="submitForm()" class="bg-teal-600 active:bg-teal-700 md:hover:bg-teal-700 text-white font-bold py-4 px-12 rounded-full text-xl shadow-lg transition-transform transform active:scale-95">
+                        נסה לשלוח שוב
+                    </button>
+                </div>
+            \`;
+            lucide.createIcons();
         }
 
         renderQuestion(0);
