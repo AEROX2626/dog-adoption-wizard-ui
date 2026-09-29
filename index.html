@@ -297,10 +297,11 @@
         }
 
         async function submitForm() {
-            const formData = new FormData();
-            formData.append('access_key', WEB3FORMS_ACCESS_KEY);
-            formData.append('subject', 'בקשת אימוץ חדשה: ' + (answers.q_name || 'ללא שם'));
-            formData.append('from_name', answers.q_name || 'טופס אימוץ');
+            const payload = {
+                access_key: WEB3FORMS_ACCESS_KEY,
+                subject: 'בקשת אימוץ חדשה: ' + (answers.q_name || 'ללא שם'),
+                from_name: answers.q_name || 'טופס אימוץ'
+            };
 
             const hebrewNames = {
                 q_name: 'שם מלא', q_phone: 'טלפון', q_id: 'תעודת זהות',
@@ -318,13 +319,17 @@
 
             for (const key in answers) {
                 const label = hebrewNames[key] || key;
-                formData.append(label, answers[key]);
+                payload[label] = answers[key];
             }
 
             try {
                 const response = await fetch('https://api.web3forms.com/submit', {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
                 });
                 
                 const result = await response.json();
